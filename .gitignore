@@ -2,6 +2,8 @@
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
 # Binaries for programs and plugins
+go-branch
+
 *.exe
 *.exe~
 *.dll
@@ -19,3 +21,6 @@
 
 # Go workspace file
 go.work
+
+# VSCode
+/.vscode

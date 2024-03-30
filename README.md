@@ -1,2 +1,3 @@
 # go-branch
-Go to git branch
+
+Tiny utility to move between branches
