@@ -38,7 +38,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 
-		case "ctrl+c", "q":
+		case "ctrl+c", "q", "esc":
+			m.quitting = true
+			m.quittingText = ""
 			return m, tea.Quit
 
 		case "up":
@@ -52,6 +54,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "enter", " ":
+			m.quitting = true
 			if err := SwitchBranch(m.branches[m.selected]); err != nil {
 				m.quittingText = err.Error()
 			} else {
