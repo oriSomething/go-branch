@@ -6,25 +6,26 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type State int
+
+const (
+	Idle State = iota + 1
+	Quiting
+)
+
 type model struct {
-	branches     []string
-	selected     int
-	quittingText string
-	quitting     bool
+	branches      []string
+	selected      int
+	quittingError *string
+	state         State
 }
 
-func InitialModel() model {
-	branches, err := GetBranches(10)
-
-	if err != nil {
-		panic(err)
-	}
-
+func InitialModel(branches []string) model {
 	return model{
-		branches:     branches,
-		selected:     0,
-		quittingText: "",
-		quitting:     false,
+		branches:      branches,
+		selected:      0,
+		quittingError: nil,
+		state:         Idle,
 	}
 }
 
@@ -39,8 +40,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 
 		case "ctrl+c", "q", "esc":
-			m.quitting = true
-			m.quittingText = ""
+			m.state = Quiting
 			return m, tea.Quit
 
 		case "up":
@@ -54,12 +54,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "enter", " ":
-			m.quitting = true
 			if err := SwitchBranch(m.branches[m.selected]); err != nil {
-				m.quittingText = err.Error()
-			} else {
-				m.quittingText = ""
+				quittingError := err.Error()
+				m.quittingError = &quittingError
 			}
+			m.state = Quiting
 
 			return m, tea.Quit
 		}
@@ -69,14 +68,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	if m.quitting {
-		return m.quittingText
+	if m.state == Quiting {
+		return ""
 	}
 
 	s := ""
 
 	for i, choice := range m.branches {
-
 		cursor := " [ ] "
 		if m.selected == i {
 			cursor = " [*] "

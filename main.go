@@ -8,9 +8,28 @@ import (
 )
 
 func main() {
-	p := tea.NewProgram(InitialModel())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error: %v", err)
+	branches, err := GetBranches(10)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	// If no branches to select from we don't care
+	if len(branches) == 0 {
+		return
+	}
+
+	p := tea.NewProgram(InitialModel(branches))
+
+	m, err := p.Run()
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	if quittingError := m.(model).quittingError; quittingError != nil {
+		fmt.Fprintln(os.Stderr, *quittingError)
 		os.Exit(1)
 	}
 }
