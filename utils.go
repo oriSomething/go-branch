@@ -14,18 +14,24 @@ func GetBranches(max int) ([]string, error) {
 	}
 
 	str := string(stdout)
-	branchesStdout := strings.SplitN(str, "\n", max+2)
+	branchesStdout := strings.Split(str, "\n")
 
-	size := len(branchesStdout)
+	// -1 for current branch
+	// -1 for empty line in the end
+	branchesStdoutSize := len(branchesStdout) - 2
+	size := branchesStdoutSize
 	if size > max {
 		size = max
 	}
 
-	j := 0
-	branches := make([]string, size)
+	// 1 because "current branch" is something we don't show
+	if size == 0 {
+		return make([]string, 0), nil
+	}
 
-	for i := 0; i < size+1 && j < size; i++ {
-		// Don't count master branch
+	branches := make([]string, size)
+	for i, j := 0, 0; i < size+1 && j < size; i++ {
+		// Don't count the curret branch
 		if branchesStdout[i][0] != '*' {
 			branches[j] = strings.Trim(branchesStdout[i], " ")
 			j++
