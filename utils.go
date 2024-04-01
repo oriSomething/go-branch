@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func GetBranches(max int) ([]string, error) {
+func GetBranches() ([]string, error) {
 	cmd := exec.Command("git", "branch", "--sort=-committerdate")
 	stdout, err := cmd.Output()
 
@@ -20,9 +20,6 @@ func GetBranches(max int) ([]string, error) {
 	// -1 for empty line in the end
 	branchesStdoutSize := len(branchesStdout) - 2
 	size := branchesStdoutSize
-	if size > max {
-		size = max
-	}
 
 	// 1 because "current branch" is something we don't show
 	if size == 0 {

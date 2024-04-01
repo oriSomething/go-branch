@@ -13,8 +13,11 @@ const (
 	Quiting
 )
 
+const limit = 10
+
 type model struct {
 	branches      []string
+	index         int
 	selected      int
 	quittingError *string
 	state         State
@@ -23,6 +26,7 @@ type model struct {
 func InitialModel(branches []string) model {
 	return model{
 		branches:      branches,
+		index:         0,
 		selected:      0,
 		quittingError: nil,
 		state:         Idle,
@@ -46,11 +50,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up":
 			if m.selected > 0 {
 				m.selected--
+
+				if m.selected == m.index-1 {
+					m.index--
+				}
 			}
 
 		case "down":
 			if m.selected < len(m.branches)-1 {
 				m.selected++
+
+				if m.selected == m.index+limit {
+					m.index++
+				}
 			}
 
 		case "enter", " ":
@@ -74,7 +86,9 @@ func (m model) View() string {
 
 	s := ""
 
-	for i, choice := range m.branches {
+	for i := m.index; i < m.index+limit; i++ {
+		choice := m.branches[i]
+
 		cursor := " [ ] "
 		if m.selected == i {
 			cursor = " [*] "

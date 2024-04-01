@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	branches, err := GetBranches(10)
+	branches, err := GetBranches()
 
 	if err != nil {
 		fmt.Println(err.Error())
