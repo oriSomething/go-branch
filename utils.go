@@ -30,7 +30,7 @@ func GetBranches() ([]string, error) {
 	for i, j := 0, 0; i < size+1 && j < size; i++ {
 		// Don't count the curret branch
 		if branchesStdout[i][0] != '*' {
-			branches[j] = strings.Trim(branchesStdout[i], " ")
+			branches[j] = strings.TrimSpace(branchesStdout[i])
 			j++
 		}
 	}
