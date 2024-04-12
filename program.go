@@ -2,71 +2,75 @@ package main
 
 import (
 	"fmt"
+	"unicode/utf8"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
-
-type State int
-
-const (
-	Idle State = iota + 1
-	Quiting
-)
-
-const limit = 10
-
-type model struct {
-	branches      []string
-	index         int
-	selected      int
-	quittingError *string
-	state         State
-}
 
 func InitialModel(branches []string) model {
+	ti := textinput.New()
+	ti.CharLimit = 156
+	ti.Width = 100
+	ti.Focus()
+
+	maxWidthBranch := 0
+	for i := 0; i < len(branches); i++ {
+		branchSize := utf8.RuneCountInString(branches[i])
+		if maxWidthBranch < branchSize {
+			maxWidthBranch = branchSize
+		}
+	}
+
 	return model{
-		branches:      branches,
-		index:         0,
-		selected:      0,
+		noFilter: filterModel{
+			branches: branches,
+			index:    0,
+			selected: 0,
+		},
+		filter:        nil,
 		quittingError: nil,
 		state:         Idle,
+
+		textInput:      ti,
+		maxWidthBranch: maxWidthBranch,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return textinput.Blink
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
-		switch msg.String() {
+		key := msg.String()
+		switch key {
 
-		case "ctrl+c", "q", "esc":
+		case "ctrl+c", "esc":
 			m.state = Quiting
 			return m, tea.Quit
 
 		case "up":
-			if m.selected > 0 {
-				m.selected--
-
-				if m.selected == m.index-1 {
-					m.index--
-				}
-			}
+			m.Up()
+			return m, nil
 
 		case "down":
-			if m.selected < len(m.branches)-1 {
-				m.selected++
-
-				if m.selected == m.index+limit {
-					m.index++
-				}
-			}
+			m.Down()
+			return m, nil
 
 		case "enter", " ":
-			if err := SwitchBranch(m.branches[m.selected]); err != nil {
+			c := m.GetCurrent()
+
+			if c.selected == -1 {
+				return m, nil
+			}
+
+			if err := SwitchBranch(c.branches[c.selected]); err != nil {
 				quittingError := err.Error()
 				m.quittingError = &quittingError
 			}
@@ -76,7 +80,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, nil
+	m.textInput, cmd = m.textInput.Update(msg)
+
+	// TODO: Use fuzzy search
+	if query := m.GetQuery(); m.currentQuery != query {
+		m.currentQuery = query
+		m.filter = m.noFilter.Filter(m.currentQuery)
+		m.noFilter.index = 0
+		m.noFilter.selected = 0
+	}
+
+	return m, cmd
 }
 
 func (m model) View() string {
@@ -86,17 +100,22 @@ func (m model) View() string {
 
 	s := ""
 
-	for i := m.index; i < m.index+limit; i++ {
-		choice := m.branches[i]
+	styleChosen := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("7")).
+		Background(lipgloss.Color("8")).
+		Width(m.maxWidthBranch)
 
-		cursor := " [ ] "
-		if m.selected == i {
-			cursor = " [*] "
-		}
+	current := m.GetCurrent()
+
+	for i, j := current.index, 0; current.index != -1 && i < len(current.branches) && j < limit; i, j = i+1, j+1 {
+		choice := current.branches[i]
 
 		// Render the row
-		s += fmt.Sprintf("%s %s\n", cursor, choice)
+		if current.selected == i {
+			s += fmt.Sprintf("  %s\n", styleChosen.Render(choice))
+		} else {
+			s += fmt.Sprintf("  %s\n", choice)
+		}
 	}
-
-	return s
+	return fmt.Sprintf("%s\n\n%s\n", m.textInput.View(), s)
 }
